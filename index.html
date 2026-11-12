@@ -1,70 +1,153 @@
 <!doctype html>
 <html lang="th">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Crossense · สถานะทางข้าม</title>
 <style>
-  *{box-sizing:border-box} body{margin:0;background:#eaf2f0;color:#12383c;font:16px/1.6 Tahoma,sans-serif}
-  main{width:min(880px,100%);margin:auto;padding:25px clamp(15px,4vw,42px)}
-  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #bdd2ce;padding-bottom:16px}
-  header b{font-size:24px;letter-spacing:-.5px} header span{font-size:13px;border-radius:5px;background:#d4e5e0;padding:4px 10px}
-  h1{margin:22px 0 4px;font-size:clamp(25px,6vw,38px);line-height:1.3} p{margin:0 0 15px;color:#38585b}
-  .scene{position:relative;isolation:isolate;height:clamp(205px,44vw,300px);overflow:hidden;border-radius:14px;background:#cfe4da;border:1px solid #aac8bb}
-  .road{position:absolute;inset:0 30%;background:#263b45;border-inline:4px solid #718890}
-  .road::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:3px dashed #f5be52}
-  .zebra{position:absolute;top:38%;height:25%;width:100%;background:repeating-linear-gradient(90deg,#263b45 0 5%,#f4f7f5 5% 10%)}
-  .signal{position:absolute;background:#fff;border-radius:9px;padding:8px;font-size:12px;max-width:30%;line-height:1.4}
-  .signal b{display:block;margin-top:4px}.car{left:3%;bottom:9%}.ped{right:3%;top:9%}
-  .lamps{display:flex;gap:4px;background:#20343c;border-radius:6px;padding:5px;width:max-content}
-  i{display:block;width:clamp(11px,3vw,18px);height:clamp(11px,3vw,18px);background:#58676b;border-radius:50%}
-  i.on.red{background:#ff6871}i.on.yellow{background:#ffd252}i.on.green{background:#43e597}
-  i.blink{animation:blink 1s steps(2,start) infinite}@keyframes blink{to{visibility:hidden}}
-  @media(prefers-reduced-motion:reduce){i.blink{animation:none}}
-  dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
-  dl div{background:white;padding:13px;border-radius:9px;border:1px solid #c7dcd5}
-  dt{font-size:13px;color:#38585b}dd{margin:0;font-size:clamp(17px,4vw,25px);font-weight:bold}
-  footer{font-size:12px;color:#38585b}
-
-  [hidden]{display:none!important}
-  body{background:#edf5f3}
-  header a{color:#12383c;font-weight:700;font-size:22px;text-decoration:none}
-  header span[data-live="yes"]{background:#c8eadc;color:#105542}
-  .controls{margin:20px 0;background:white;padding:15px;border:1px solid #c7dcd5;border-radius:9px}
-  .controls h2{font-size:17px;margin:0 0 8px}
-  .control-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  select,button{font:inherit;padding:7px 10px;border:1px solid #85a49a;border-radius:6px;background:white;color:#12383c}
-  select{max-width:100%}
-  button{cursor:pointer}
-  button.primary{background:#123e37;color:white}
-  button:disabled{opacity:.45;cursor:default}
-  button:focus-visible,select:focus-visible{outline:3px solid #167c68;outline-offset:3px}
-  .controls p{font-size:13px;margin:8px 0 0}
-  .control-row + .control-row{margin-top:8px}
+:root{--ink:#183543;--muted:#536e7a;--teal:#087a79;--line:#dce8ec;--paper:#fff;--background:#f2f8f9}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--background);color:var(--ink);font:15px/1.55 Tahoma,"Leelawadee UI",sans-serif}
+button,select{font:inherit}
+main{width:min(1190px,100%);margin:auto;padding:0 clamp(16px,3.8vw,42px) 32px}
+.masthead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;color:var(--ink);text-decoration:none;font-size:22px;font-weight:700;letter-spacing:-.45px}
+.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:0;font-weight:400}
+.mark{display:flex;align-items:center;justify-content:center;gap:3px;width:39px;height:39px;border-radius:9px;background:var(--teal);overflow:hidden}
+.mark i{width:4px;height:24px;display:block;background:#fff;border-radius:1px;transform:skewX(-18deg)}
+.badge{display:inline-flex;align-items:center;gap:7px;flex-shrink:0;padding:5px 10px;border-radius:5px;color:#486573;background:#e7eff2;font-size:12px}
+.badge::before,.hint::before{content:"";width:7px;height:7px;border-radius:50%;background:#879fa7;flex-shrink:0}
+.badge[data-live="yes"]{background:#e0f3ed;color:#146551}
+.badge[data-live="yes"]::before{background:#159374}
+.intro{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:25px 0 17px}
+h1,h2,h3,p,dl,dd{margin:0}
+h1{font-size:clamp(28px,5vw,43px);letter-spacing:-.9px;line-height:1.25}
+.intro p,.status-note{color:var(--muted);font-size:13px;margin-top:5px}
+.controls,.panel,.sequence{background:var(--paper);border:1px solid var(--line);border-radius:11px}
+.controls{margin-bottom:17px}
+.controls summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;font-weight:700;list-style:none}
+.controls summary::-webkit-details-marker{display:none}
+.controls summary::after{content:"+";font-size:18px;color:var(--teal)}
+.controls[open] summary::after{content:"−"}
+.control-body{padding:0 16px 14px}
+.control-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button{padding:7px 10px;border:1px solid #afc5cc;border-radius:6px;background:white;color:var(--ink)}
+select{max-width:100%}
+button{cursor:pointer}
+button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+button:disabled,select:disabled{opacity:.55;cursor:default}
+button:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #16867a;outline-offset:3px}
+.controls p{margin-top:7px;color:var(--muted);font-size:12px}
+#share-tools{margin-top:8px}
+.live-grid{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(250px,1fr);gap:17px}
+.panel{overflow:hidden}
+.panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid #edf2f4}
+.panel-top h2,.sequence h2{font-size:15px}
+.panel-top span{color:var(--muted);font-size:11px}
+.phase-head{padding:16px 16px 11px}
+.phase-head h3{font-size:clamp(16px,2.7vw,23px);line-height:1.35}
+.scene{position:relative;isolation:isolate;height:clamp(205px,30vw,284px);overflow:hidden;margin:0 15px;border-radius:8px;background:#e8f1f3}
+.road{position:absolute;inset:0 29%;background:#2b4052;border-inline:2px solid #8597a4}
+.road::before{content:"";position:absolute;inset:0 auto 0 50%;border-left:3px dashed #e9b04c}
+.zebra{position:absolute;top:38%;height:25%;width:100%;background:repeating-linear-gradient(90deg,#2b4052 0 3%,#f4f8fa 3% 8%,#2b4052 8% 10%)}
+.car-shape{position:absolute;width:11%;height:22%;left:18%;top:7%;background:#d9e7ed;border-radius:7px}
+.car-shape::after{content:"";position:absolute;inset:24% 13% auto;height:24%;border-radius:3px;background:#7f9aaa}
+.car-shape.second{left:69%;top:72%;transform:rotate(180deg)}
+.approach{position:absolute;top:48%;width:18%;border-top:2px dashed #85aeb5}
+.approach.left{left:10%}.approach.right{right:10%}
+.signal{position:absolute;background:#fff;border:1px solid #d6e5e9;border-radius:7px;padding:6px 8px;font-size:11px;line-height:1.5;max-width:37%;box-shadow:0 2px 5px #193a4b14}
+.signal b{display:block;margin-top:3px}
+.car{left:3%;bottom:7%}.ped{right:3%;top:7%}
+.lamps{display:flex;gap:4px;background:#263c48;border-radius:5px;padding:4px;width:max-content}
+.lamps i{display:block;width:clamp(10px,2vw,15px);height:clamp(10px,2vw,15px);background:#596b73;border-radius:50%}
+i.on.red{background:#eb626b}i.on.yellow{background:#f6c35a}i.on.green{background:#4cce9a}
+i.blink{animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+@media(prefers-reduced-motion:reduce){i.blink{animation:none}}
+.panel-foot{padding:11px 16px;color:var(--muted);font-size:11px}
+.hint{display:flex;align-items:center;gap:7px}
+.sensor-body{padding:16px}
+.sensor-label{font-size:13px;color:var(--muted)}
+.measure{display:flex;align-items:baseline;gap:7px;margin:1px 0 5px}
+.measure strong{color:#225364;font-size:clamp(27px,6vw,56px);line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.measure strong[data-no-echo="yes"]{font-size:20px;letter-spacing:0}
+.measure small{color:var(--muted)}
+.sensor-state{display:inline-block;padding:3px 7px;border-radius:5px;font-size:11px;background:#edf2f5;color:var(--muted)}
+.sensor-state[data-state="CLEAR"]{background:#e5f4ed;color:#226849}
+.sensor-state[data-state="OCCUPIED"]{background:#fae8e7;color:#9c3d3b}
+.sensor-state[data-state="BOUNDARY"],.sensor-state[data-state="UNKNOWN"]{background:#fbf0d8;color:#775d20}
+.scale{margin:21px 0 14px}
+.track{height:6px;background:#e6eef1;border-radius:4px;position:relative}
+.marker{position:absolute;top:-4px;width:5px;height:14px;background:#285161;border:1px solid #fff;border-radius:3px;transform:translateX(-50%)}
+.scale-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:5px}
+.length{display:flex;justify-content:space-between;gap:7px;border-top:1px solid #e9f1f3;padding-top:11px;font-size:12px;color:var(--muted)}
+.length dd{font-weight:700;color:var(--ink)}
+.sequence{margin-top:17px;padding:12px 16px}
+.sequence ol{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:0;margin:9px 0 0;list-style:none}
+.sequence li{padding:7px 5px;border-top:3px solid #e8f0f2;font-size:11px;color:var(--muted)}
+.sequence li[aria-current="step"]{border-color:var(--teal);background:#edf7f6;color:#20595c;font-weight:700}
+@media(max-width:750px){.live-grid{grid-template-columns:1fr}.intro{margin-top:19px}.sensor-body{padding-top:12px}}
+@media(max-width:420px){.brand small{display:none}.sequence ol{grid-template-columns:repeat(3,minmax(0,1fr))}.controls summary{font-size:13px}.measure strong{font-size:36px}.approach{width:15%}}
 </style>
+</head>
+<body>
 <main>
-  <header><a href="./">Crossense</a><span id="live-badge">รอข้อมูล</span></header>
-  <h1>สถานะทางข้าม</h1>
-  <p id="phase" role="status">กำลังโหลดสถานะ…</p>
-  <div class="scene" aria-label="ภาพจำลองทางม้าลายพร้อมไฟรถและคนข้าม">
-    <div class="road" aria-hidden="true"><div class="zebra"></div></div>
-    <div class="signal car">ไฟรถ<div class="lamps" aria-hidden="true"><i class="red" id="car-red"></i><i class="yellow" id="car-yellow"></i><i class="green" id="car-green"></i></div><b id="car">—</b></div>
-    <div class="signal ped">ไฟคนข้าม<div class="lamps" aria-hidden="true"><i class="red" id="ped-red"></i><i class="green" id="ped-green"></i></div><b id="ped">—</b></div>
-  </div>
-  <dl><div><dt>ความยาวทางม้าลาย</dt><dd id="length">—</dd></div><div><dt>ระยะที่เซนเซอร์อ่านได้</dt><dd id="distance">—</dd></div></dl>
-
-  <section class="controls" aria-labelledby="usb-heading">
-    <h2 id="usb-heading">เชื่อมเซ็นเซอร์ผ่าน COM Port</h2>
-    <div class="control-row">
-      <select id="ports" aria-label="พอร์ตที่อนุญาตไว้"></select>
-      <button id="connect" type="button" disabled>เชื่อมพอร์ตที่เลือก</button>
-      <button class="primary" id="choose" type="button" disabled>เลือก COM Port</button>
-      <button id="disconnect" type="button" disabled>ตัดการเชื่อมต่อ</button>
+  <header class="masthead">
+    <a class="brand" href="./"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>Crossense<small>ระบบติดตามทางข้ามอัจฉริยะ</small></span></a>
+    <span class="badge" id="live-badge">รอข้อมูล</span>
+  </header>
+  <div class="intro"><div><h1>สถานะทางข้าม</h1><p>ดูสัญญาณไฟและระยะที่ ESP32 ตรวจพบ</p></div></div>
+  <details class="controls" id="usb-panel">
+    <summary>เชื่อมเซ็นเซอร์ผ่าน COM Port</summary>
+    <div class="control-body">
+      <div class="control-row">
+        <button class="primary" id="choose" type="button" disabled>เลือก COM Port</button>
+        <select id="ports" aria-label="พอร์ตที่อนุญาตไว้"></select>
+        <button id="connect" type="button" disabled>เชื่อมพอร์ตที่เลือก</button>
+        <button id="disconnect" type="button" disabled>ตัดการเชื่อมต่อ</button>
+      </div>
+      <p id="serial-status" role="status">ตรวจสอบพอร์ต…</p>
+      <p id="sharing-status" hidden></p>
+      <div class="control-row" id="share-tools" hidden><button id="copy-link" type="button">คัดลอกลิงก์สำหรับผู้ชม</button></div>
     </div>
-    <p id="serial-status" role="status">ตรวจสอบพอร์ต…</p>
-    <p id="sharing-status" hidden></p>
-    <div class="control-row" id="share-tools" hidden><button id="copy-link" type="button">คัดลอกลิงก์สำหรับผู้ชม</button></div>
+  </details>
+  <section class="live-grid" aria-label="ภาพรวมทางข้าม">
+    <article class="panel">
+      <div class="panel-top"><h2>สัญญาณไฟ</h2><span>ทางข้ามจำลอง</span></div>
+      <div class="phase-head"><h3 id="phase" role="status">กำลังโหลดสถานะ…</h3></div>
+      <div class="scene" role="group" aria-label="ภาพทางม้าลายพร้อมไฟรถและคนข้าม">
+        <span class="approach left" aria-hidden="true"></span><span class="approach right" aria-hidden="true"></span>
+        <div class="road" aria-hidden="true"><span class="car-shape"></span><span class="car-shape second"></span><div class="zebra"></div></div>
+        <div class="signal car">รถ<div class="lamps" aria-hidden="true"><i class="red" id="car-red"></i><i class="yellow" id="car-yellow"></i><i class="green" id="car-green"></i></div><b id="car">—</b></div>
+        <div class="signal ped">คนข้าม<div class="lamps" aria-hidden="true"><i class="red" id="ped-red"></i><i class="green" id="ped-green"></i></div><b id="ped">—</b></div>
+      </div>
+      <p class="panel-foot hint" id="updated">รอข้อมูลสดจาก ESP32</p>
+    </article>
+    <aside class="panel">
+      <div class="panel-top"><h2>อัลตราโซนิก</h2><span>ฝั่งซ้าย</span></div>
+      <div class="sensor-body">
+        <p class="sensor-label">ระยะวัตถุที่ตรวจพบ</p>
+        <p class="measure"><strong id="distance">—</strong><small id="distance-unit">ซม.</small></p>
+        <span class="sensor-state" id="sensor-state">รอข้อมูลสด</span>
+        <div class="scale" aria-hidden="true">
+          <div class="track" id="scale-track"><i class="marker" id="scale-marker" hidden></i></div>
+          <div class="scale-labels"><span>0</span><span id="scale-max">50 ซม.</span></div>
+        </div>
+        <dl><div class="length"><dt>ขอบทางข้าม</dt><dd id="length">—</dd></div></dl>
+      </div>
+    </aside>
   </section>
-  <footer id="updated">เวลาไทย</footer>
+  <section class="sequence" aria-labelledby="sequence-title">
+    <h2 id="sequence-title">ลำดับสัญญาณ</h2>
+    <ol id="phase-steps">
+      <li data-phase="CAR_IDLE">รถเขียว</li><li data-phase="CAR_WARNING">รถเหลือง</li>
+      <li data-phase="BEFORE_WALK">แดงก่อนข้าม</li><li data-phase="WALK">คนเดินเขียว</li>
+      <li data-phase="PED_CLEARANCE">รอข้ามพ้น</li><li data-phase="BEFORE_CAR">แดงก่อนปล่อยรถ</li>
+    </ol>
+  </section>
 </main>
 <script type="module" src="./app.mjs"></script>
+</body>
 </html>
