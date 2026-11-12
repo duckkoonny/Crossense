@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossense · สถานะทางข้าม</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#eaf2f0;color:#12383c;font:16px/1.6 Tahoma,sans-serif}
+  main{width:min(880px,100%);margin:auto;padding:25px clamp(15px,4vw,42px)}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #bdd2ce;padding-bottom:16px}
+  header b{font-size:24px;letter-spacing:-.5px} header span{font-size:13px;border-radius:5px;background:#d4e5e0;padding:4px 10px}
+  h1{margin:22px 0 4px;font-size:clamp(25px,6vw,38px);line-height:1.3} p{margin:0 0 15px;color:#38585b}
+  .scene{position:relative;isolation:isolate;height:clamp(205px,44vw,300px);overflow:hidden;border-radius:14px;background:#cfe4da;border:1px solid #aac8bb}
+  .road{position:absolute;inset:0 30%;background:#263b45;border-inline:4px solid #718890}
+  .road::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:3px dashed #f5be52}
+  .zebra{position:absolute;top:38%;height:25%;width:100%;background:repeating-linear-gradient(90deg,#263b45 0 5%,#f4f7f5 5% 10%)}
+  .signal{position:absolute;background:#fff;border-radius:9px;padding:8px;font-size:12px;max-width:30%;line-height:1.4}
+  .signal b{display:block;margin-top:4px}.car{left:3%;bottom:9%}.ped{right:3%;top:9%}
+  .lamps{display:flex;gap:4px;background:#20343c;border-radius:6px;padding:5px;width:max-content}
+  i{display:block;width:clamp(11px,3vw,18px);height:clamp(11px,3vw,18px);background:#58676b;border-radius:50%}
+  i.on.red{background:#ff6871}i.on.yellow{background:#ffd252}i.on.green{background:#43e597}
+  i.blink{animation:blink 1s steps(2,start) infinite}@keyframes blink{to{visibility:hidden}}
+  @media(prefers-reduced-motion:reduce){i.blink{animation:none}}
+  dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
+  dl div{background:white;padding:13px;border-radius:9px;border:1px solid #c7dcd5}
+  dt{font-size:13px;color:#38585b}dd{margin:0;font-size:clamp(17px,4vw,25px);font-weight:bold}
+  footer{font-size:12px;color:#38585b}
+
+  [hidden]{display:none!important}
+  body{background:#edf5f3}
+  header a{color:#12383c;font-weight:700;font-size:22px;text-decoration:none}
+  header span[data-live="yes"]{background:#c8eadc;color:#105542}
+  .controls{margin:20px 0;background:white;padding:15px;border:1px solid #c7dcd5;border-radius:9px}
+  .controls h2{font-size:17px;margin:0 0 8px}
+  .control-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,button{font:inherit;padding:7px 10px;border:1px solid #85a49a;border-radius:6px;background:white;color:#12383c}
+  select{max-width:100%}
+  button{cursor:pointer}
+  button.primary{background:#123e37;color:white}
+  button:disabled{opacity:.45;cursor:default}
+  button:focus-visible,select:focus-visible{outline:3px solid #167c68;outline-offset:3px}
+  .controls p{font-size:13px;margin:8px 0 0}
+  .control-row + .control-row{margin-top:8px}
+</style>
+<main>
+  <header><a href="./">Crossense</a><span id="live-badge">รอข้อมูล</span></header>
+  <h1>สถานะทางข้าม</h1>
+  <p id="phase" role="status">กำลังโหลดสถานะ…</p>
+  <div class="scene" aria-label="ภาพจำลองทางม้าลายพร้อมไฟรถและคนข้าม">
+    <div class="road" aria-hidden="true"><div class="zebra"></div></div>
+    <div class="signal car">ไฟรถ<div class="lamps" aria-hidden="true"><i class="red" id="car-red"></i><i class="yellow" id="car-yellow"></i><i class="green" id="car-green"></i></div><b id="car">—</b></div>
+    <div class="signal ped">ไฟคนข้าม<div class="lamps" aria-hidden="true"><i class="red" id="ped-red"></i><i class="green" id="ped-green"></i></div><b id="ped">—</b></div>
+  </div>
+  <dl><div><dt>ความยาวทางม้าลาย</dt><dd id="length">—</dd></div><div><dt>ระยะที่เซนเซอร์อ่านได้</dt><dd id="distance">—</dd></div></dl>
+
+  <section class="controls" aria-labelledby="usb-heading">
+    <h2 id="usb-heading">เชื่อมเซ็นเซอร์ผ่าน COM Port</h2>
+    <div class="control-row">
+      <select id="ports" aria-label="พอร์ตที่อนุญาตไว้"></select>
+      <button id="connect" type="button" disabled>เชื่อมพอร์ตที่เลือก</button>
+      <button class="primary" id="choose" type="button" disabled>เลือก COM Port</button>
+      <button id="disconnect" type="button" disabled>ตัดการเชื่อมต่อ</button>
+    </div>
+    <p id="serial-status" role="status">ตรวจสอบพอร์ต…</p>
+    <p id="sharing-status" hidden></p>
+    <div class="control-row" id="share-tools" hidden><button id="copy-link" type="button">คัดลอกลิงก์สำหรับผู้ชม</button></div>
+  </section>
+  <footer id="updated">เวลาไทย</footer>
+</main>
+<script type="module" src="./app.mjs"></script>
+</html>
