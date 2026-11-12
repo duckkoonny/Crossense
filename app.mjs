@@ -14,7 +14,11 @@ export function parseSerialLine(line) {
   if (!phase || rawDistance === undefined) return null;
   const distance = Number(rawDistance);
   const edge = line.match(/\|\s*crosswalk_(?:edge_)?cm=(\d+(?:\.\d+)?)(?=\s|$)/)?.[1];
-  return { phase, distance: distance >= 2 && distance <= 400 ? distance : null, crosswalkCm: edge ? Number(edge) : null };
+  const sensor = line.match(/\|\s*sensor=(CLEAR|OCCUPIED|BOUNDARY|NO ECHO|INVALID)/)?.[1];
+  return {
+    phase, distance: distance >= 2 && distance <= 400 ? distance : null, crosswalkCm: edge ? Number(edge) : null,
+    sensor: sensor === 'NO ECHO' || sensor === 'INVALID' ? 'UNKNOWN' : sensor ?? null
+  };
 }
 
 function start() {
@@ -56,7 +60,26 @@ function start() {
       lamp.classList.toggle('blink', lamp.id === 'ped-red' && phase === 'PED_CLEARANCE');
     }
     $('length').textContent = state?.crosswalkCm == null ? '—' : `${state.crosswalkCm} ซม.`;
-    $('distance').textContent = state?.distance == null ? (state ? 'อ่านระยะไม่ได้' : '—') : `${state.distance.toFixed(1)} ซม.`;
+    const distance = state?.distance;
+    const edge = state?.crosswalkCm;
+    const sensor = state?.sensor ?? (state && distance == null ? 'UNKNOWN' : null);
+    $('distance').textContent = distance == null ? (state ? 'อ่านระยะไม่ได้' : '—') : distance.toFixed(1);
+    $('distance').dataset.noEcho = state && distance == null ? 'yes' : 'no';
+    $('distance-unit').hidden = distance == null;
+    $('sensor-state').dataset.state = sensor ?? '';
+    $('sensor-state').textContent = ({ CLEAR: 'พ้นขอบทางข้าม', OCCUPIED: 'พบวัตถุในเขตทางข้าม', BOUNDARY: 'อยู่ใกล้ขอบทางข้าม', UNKNOWN: 'ยังยืนยันระยะไม่ได้' })[sensor]
+      ?? (state ? 'กำลังรับข้อมูลจากบอร์ด' : 'รอข้อมูลสด');
+    const max = Math.max(50, Math.ceil(((edge ?? 0) + 10) / 25) * 25);
+    $('scale-max').textContent = `${max} ซม.`;
+    const edgePercent = edge == null ? null : Math.min(100, edge / max * 100);
+    $('scale-track').style.background = edgePercent == null ? ''
+      : `linear-gradient(to right, #e9bbb2 ${edgePercent}%, #bde1d5 ${edgePercent}%)`;
+    $('scale-marker').hidden = distance == null;
+    if (distance != null) $('scale-marker').style.left = `${Math.min(100, distance / max * 100)}%`;
+    for (const step of $('phase-steps').children) {
+      if (step.dataset.phase === phase) step.setAttribute('aria-current', 'step');
+      else step.removeAttribute('aria-current');
+    }
     $('updated').textContent = state ? `ข้อมูลล่าสุด ${clock.format(state.updatedAt)} (เวลาไทย)` : 'อัปเดตอัตโนมัติเมื่อบอร์ดส่งข้อมูล';
   }
 
@@ -185,6 +208,7 @@ function start() {
       catch { /* The page can still read a locally connected board. */ }
     }
     if (relay && sessionStorage.getItem(`crossense:${relay}`)) {
+      $('usb-panel').open = true;
       $('sharing-status').hidden = false;
       $('sharing-status').textContent = 'รอข้อมูลจาก ESP32 เพื่อส่งให้ผู้ชม';
       $('share-tools').hidden = false;
