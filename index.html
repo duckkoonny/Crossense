@@ -88,7 +88,32 @@ i.blink{animation:blink 1s steps(2,start) infinite}
 .sequence ol{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:0;margin:9px 0 0;list-style:none}
 .sequence li{padding:7px 5px;border-top:3px solid #e8f0f2;font-size:11px;color:var(--muted)}
 .sequence li[aria-current="step"]{border-color:var(--teal);background:#edf7f6;color:#20595c;font-weight:700}
+.monitor{margin-top:17px}
+.monitor h2{font-size:15px}
+.monitor .panel-top{flex-wrap:wrap}
+.request-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;list-style:none;margin:0;padding:14px 16px}
+.request-steps li{padding:6px 0;color:var(--muted);font-size:12px;border-bottom:2px solid #e8f0f2}
+.request-steps li[aria-current="step"]{color:var(--teal);border-color:var(--teal);font-weight:700}
+.timing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0;padding:0 16px 16px}
+.timing-grid div{background:#f2f7f8;border-radius:7px;padding:10px}
+.timing-grid dt,.stats-list dt{color:var(--muted);font-size:12px}
+.timing-grid dd,.stats-list dd{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.monitor-grid{margin-top:17px}
+.chart-body{padding:12px 16px 16px}
+.chart-body canvas{display:block;width:100%;height:180px}
+.chart-body canvas[hidden]{display:none}
+.chart-times{display:flex;justify-content:space-between;padding:2px 8px 0 36px;color:var(--muted);font-size:11px}
+.chart-times[hidden]{display:none}
+.chart-note,.chart-empty{color:var(--muted);font-size:12px}
+.chart-note{margin-top:7px}
+.chart-empty{min-height:110px;display:grid;place-items:center;text-align:center}
+.chart-empty[hidden]{display:none}
+.stats-list{padding:4px 16px;margin:0}
+.stats-list div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0}
+.stats-list div+div{border-top:1px solid #e9f1f3}
+.stats-list dd{white-space:nowrap}
 @media(max-width:750px){.live-grid{grid-template-columns:1fr}.intro{margin-top:19px}.sensor-body{padding-top:12px}}
+@media(max-width:520px){.timing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.request-steps{gap:5px}.request-steps li{font-size:11px}}
 @media(max-width:420px){.brand small{display:none}.sequence ol{grid-template-columns:repeat(3,minmax(0,1fr))}.controls summary{font-size:13px}.measure strong{font-size:36px}.approach{width:15%}}
 </style>
 </head>
@@ -139,6 +164,19 @@ i.blink{animation:blink 1s steps(2,start) infinite}
       </div>
     </aside>
   </section>
+  <section class="panel monitor" aria-labelledby="request-title">
+    <div class="panel-top"><h2 id="request-title">สถานะคำขอข้าม</h2><span id="request-label">รอข้อมูลสดจาก ESP32</span></div>
+    <ol class="request-steps" id="request-steps">
+      <li data-stage="waiting">รับคำขอ</li><li data-stage="stopping">หยุดรถ</li>
+      <li data-stage="crossing">เริ่มข้าม</li><li data-stage="clearing">รอข้ามพ้น</li><li data-stage="completed">จบรอบ</li>
+    </ol>
+    <dl class="timing-grid">
+      <div><dt>เวลาหลังรับคำขอ</dt><dd id="request-age">—</dd></div>
+      <div><dt>เวลาช่วงปัจจุบัน</dt><dd id="phase-age">—</dd></div>
+      <div><dt>ถึงเวลาพื้นฐานของช่วง</dt><dd id="baseline-remaining">—</dd></div>
+      <div><dt>เวลาที่ขยายเพิ่ม</dt><dd id="extension-age">—</dd></div>
+    </dl>
+  </section>
   <section class="sequence" aria-labelledby="sequence-title">
     <h2 id="sequence-title">ลำดับสัญญาณ</h2>
     <ol id="phase-steps">
@@ -146,6 +184,26 @@ i.blink{animation:blink 1s steps(2,start) infinite}
       <li data-phase="BEFORE_WALK">แดงก่อนข้าม</li><li data-phase="WALK">คนเดินเขียว</li>
       <li data-phase="PED_CLEARANCE">รอข้ามพ้น</li><li data-phase="BEFORE_CAR">แดงก่อนปล่อยรถ</li>
     </ol>
+  </section>
+  <section class="live-grid monitor monitor-grid" aria-label="ประวัติระยะและสถิติ">
+    <article class="panel">
+      <div class="panel-top"><h2>ระยะตรวจจับล่าสุด</h2><span>สูงสุด 90 จุด</span></div>
+      <div class="chart-body">
+        <p class="chart-empty" id="chart-empty">กราฟจะแสดงเมื่อได้รับค่าระยะจาก ESP32</p>
+        <canvas id="distance-chart" role="img" aria-label="กราฟระยะจากอัลตราโซนิก หน่วยเซนติเมตร" hidden></canvas>
+        <div class="chart-times" id="chart-times" hidden><time id="chart-start"></time><time id="chart-end"></time></div>
+        <p class="chart-note" id="chart-note" hidden></p>
+      </div>
+    </article>
+    <article class="panel">
+      <div class="panel-top"><h2>การทำงานวันนี้</h2><span>เวลาไทย</span></div>
+      <dl class="stats-list">
+        <div><dt>คำขอที่รับแล้ว</dt><dd id="stat-requests">—</dd></div>
+        <div><dt>รอบที่จบแล้ว</dt><dd id="stat-completed">—</dd></div>
+        <div><dt>รอบที่จบและมีการขยายเวลา</dt><dd id="stat-extended">—</dd></div>
+      </dl>
+      <p class="panel-foot" id="stats-note">รอข้อมูลจาก Node-RED</p>
+    </article>
   </section>
 </main>
 <script type="module" src="./app.mjs"></script>

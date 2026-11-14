@@ -3,6 +3,11 @@ const phases = {
   BEFORE_WALK: 'แดงทั้งสองฝั่ง · ก่อนเริ่มข้าม', WALK: 'คนเดินเขียว · เริ่มข้ามได้',
   PED_CLEARANCE: 'คนเดินแดงกะพริบ · รอข้ามพ้น', BEFORE_CAR: 'แดงทั้งสองฝั่ง · ก่อนคืนไฟรถ'
 };
+const requestLabels = {
+  idle: 'รอคำขอข้าม', waiting: 'รับคำขอแล้ว รอรถเขียวครบขั้นต่ำ',
+  stopping: 'กำลังหยุดรถ', crossing: 'เริ่มข้ามได้',
+  clearing: 'รอให้เดินพ้นทางข้าม', completed: 'คำขอล่าสุดจบรอบแล้ว'
+};
 
 export function parseSerialLine(line) {
   const phase = [
@@ -42,6 +47,81 @@ function start() {
   let pollingError = false;
   let sending = false;
   let lastSend = 0;
+  let localHistory = [];
+
+  function renderChart(points, edge) {
+    const canvas = $('distance-chart');
+    const visible = points.length > 1 && points.some(point => Number.isFinite(point.value));
+    canvas.hidden = !visible;
+    $('chart-empty').hidden = visible;
+    $('chart-times').hidden = !visible;
+    $('chart-note').hidden = !visible || !Number.isFinite(edge);
+    if (!visible) return;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (width < 50 || height < 20) return;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    const context = canvas.getContext('2d');
+    context.scale(ratio, ratio);
+    const left = 36, right = width - 8, top = 12, bottom = height - 9;
+    const max = Math.max(50, Math.ceil(Math.max(edge ?? 0, ...points.map(p => p.value ?? 0)) / 25) * 25);
+    const y = value => bottom - value / max * (bottom - top);
+    const first = points[0].at;
+    const last = points.at(-1).at;
+    const x = at => left + (at - first) / Math.max(1, last - first) * (right - left);
+    context.font = '11px system-ui';
+    context.fillStyle = '#516b78';
+    context.textBaseline = 'middle';
+    const grid = (value, color, dashed = false) => {
+      context.beginPath();
+      context.setLineDash(dashed ? [4, 5] : []);
+      context.strokeStyle = color;
+      context.moveTo(left, y(value));
+      context.lineTo(right, y(value));
+      context.stroke();
+      context.fillText(String(value), 0, y(value));
+    };
+    grid(0, '#dce8eb');
+    grid(max, '#dce8eb');
+    if (Number.isFinite(edge) && edge < max) grid(edge, '#a87832', true);
+    context.beginPath();
+    context.setLineDash([]);
+    context.strokeStyle = '#13838c';
+    context.lineWidth = 2;
+    let drawing = false;
+    for (const point of points) {
+      if (!Number.isFinite(point.value)) { drawing = false; continue; }
+      if (drawing) context.lineTo(x(point.at), y(point.value));
+      else context.moveTo(x(point.at), y(point.value));
+      drawing = true;
+    }
+    context.stroke();
+    $('chart-start').textContent = clock.format(first);
+    $('chart-end').textContent = clock.format(last);
+    $('chart-note').textContent = Number.isFinite(edge) ? `เส้นประแสดงขอบทางข้าม ${edge} ซม.` : '';
+  }
+
+  function renderMonitoring(state, points) {
+    const stage = state?.requestStage;
+    const elapsed = (value, round = Math.floor) => Number.isFinite(value) ? `${round(value)} วินาที` : '—';
+    $('request-label').textContent = state?.cycleSource === 'AUTO' ? 'รอบอัตโนมัติ'
+      : requestLabels[stage] ?? (state ? 'รอข้อมูลคำขอจาก Node-RED' : 'รอข้อมูลสดจาก ESP32');
+    for (const step of $('request-steps').children) {
+      if (stage === step.dataset.stage && state.cycleSource !== 'AUTO') step.setAttribute('aria-current', 'step');
+      else step.removeAttribute('aria-current');
+    }
+    $('request-age').textContent = elapsed(state?.requestAge);
+    $('phase-age').textContent = elapsed(state?.timingKnown ? state.phaseAge : null);
+    $('baseline-remaining').textContent = elapsed(state?.baselineRemaining, Math.ceil);
+    $('extension-age').textContent = elapsed(state?.extending ? state.extensionSeconds : null);
+    for (const field of ['requests', 'completed', 'extended']) {
+      $('stat-' + field).textContent = state?.stats?.[field] ?? '—';
+    }
+    $('stats-note').textContent = state?.stats ? 'นับจากเหตุการณ์ที่ Node-RED ได้รับ' : 'รอข้อมูลจาก Node-RED';
+    renderChart(points, state?.crosswalkCm);
+  }
 
   function render() {
     const board = local && Date.now() - local.updatedAt < 4000 ? local : null;
@@ -81,6 +161,7 @@ function start() {
       else step.removeAttribute('aria-current');
     }
     $('updated').textContent = state ? `ข้อมูลล่าสุด ${clock.format(state.updatedAt)} (เวลาไทย)` : 'อัปเดตอัตโนมัติเมื่อบอร์ดส่งข้อมูล';
+    renderMonitoring(state, board ? localHistory : shared?.history ?? []);
   }
 
   function buttons() {
@@ -132,6 +213,10 @@ function start() {
           skipLine = false;
           if (!packet) continue;
           local = { ...packet, updatedAt: Date.now() };
+          if (local.updatedAt - (localHistory.at(-1)?.at ?? 0) >= 900) {
+            localHistory.push({ at: local.updatedAt, value: packet.distance });
+            localHistory = localHistory.slice(-90);
+          }
           $('serial-status').textContent = 'เชื่อมต่อ ESP32 แล้ว กำลังรับข้อมูล';
           render();
           void publish(packet);
@@ -144,6 +229,7 @@ function start() {
       try { await connection.port.close(); } catch { /* Device may have been unplugged. */ }
       active = null;
       local = null;
+      localHistory = [];
       busy = false;
       $('serial-status').textContent = 'ตัดการเชื่อมต่อ ESP32 แล้ว';
       await refreshPorts();
